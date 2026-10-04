@@ -302,7 +302,7 @@ export class UserController {
         success: false,
         error: {
           code: 'ROLE_NOT_FOUND',
-          message: `Роль '${targetRoleName}' не найдена в системе. Доступные роли: instructor, admin, manager.`,
+          message: `Роль '${targetRoleName}' не найдена в системе. Доступные роли: instructor, admin.`,
         },
       });
       return;

@@ -21,7 +21,7 @@ export class AuthController {
     const { email, password, full_name, role } = req.body;
 
     const requestedRole = (role || 'student').toLowerCase().trim();
-    if (['instructor', 'admin', 'manager'].includes(requestedRole)) {
+    if (['instructor', 'admin'].includes(requestedRole)) {
       res.status(403).json({
         success: false,
         error: {

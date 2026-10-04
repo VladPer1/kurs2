@@ -67,7 +67,7 @@ export const SWAGGER_SCHEMAS: Record<string, any> = {
       full_name: { type: 'string', example: 'Алексей Эксперт' },
       role: {
         type: 'string',
-        enum: ['instructor', 'admin', 'manager'],
+        enum: ['instructor', 'admin'],
         example: 'instructor',
         description: 'Роль для создания персонала (доступно только Администраторам)',
       },

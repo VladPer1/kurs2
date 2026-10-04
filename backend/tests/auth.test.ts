@@ -19,7 +19,7 @@ describe('Auth Service & Endpoints', () => {
       const payload = {
         userId: 'test-usr-1',
         email: 'test@example.com',
-        role: 'manager',
+        role: 'admin',
         permissions: ['courses:create', 'users:view_all'],
       };
 
