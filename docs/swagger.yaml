@@ -117,7 +117,6 @@ components:
           enum:
             - "instructor"
             - "admin"
-            - "manager"
           example: "instructor"
           description: "Роль для создания персонала (доступно только Администраторам)"
         bio:

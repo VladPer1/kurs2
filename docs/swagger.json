@@ -164,8 +164,7 @@
             "type": "string",
             "enum": [
               "instructor",
-              "admin",
-              "manager"
+              "admin"
             ],
             "example": "instructor",
             "description": "Роль для создания персонала (доступно только Администраторам)"

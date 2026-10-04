@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 export const ALLOWED_REGISTRATION_ROLES = ['student'] as const;
-export const ALLOWED_STAFF_ROLES = ['instructor', 'admin', 'manager'] as const;
+export const ALLOWED_STAFF_ROLES = ['instructor', 'admin'] as const;
 
 export function validateRegister(req: Request, res: Response, next: NextFunction): void {
   const { email, password, full_name, role } = req.body;

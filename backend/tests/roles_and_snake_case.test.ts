@@ -16,7 +16,7 @@ describe('Roles, Dynamic RBAC & Strict snake_case Contract', () => {
     assert.ok(adminToken);
   });
 
-  test('GET /roles includes admin, instructor, student, and manager roles', async () => {
+  test('GET /roles includes admin, instructor, and student roles', async () => {
     const res = await fetch(`${BASE_URL}/roles`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
@@ -29,7 +29,7 @@ describe('Roles, Dynamic RBAC & Strict snake_case Contract', () => {
     assert.ok(roleNames.includes('admin'), 'admin role must exist');
     assert.ok(roleNames.includes('instructor'), 'instructor role must exist');
     assert.ok(roleNames.includes('student'), 'student role must exist');
-    assert.ok(roleNames.includes('manager'), 'manager role must exist');
+    assert.ok(!roleNames.includes('manager'), 'manager role should not exist');
   });
 
   test('PATCH /users/{id}/role assigns role to user and returns snake_case payload', async () => {
@@ -46,21 +46,21 @@ describe('Roles, Dynamic RBAC & Strict snake_case Contract', () => {
     });
     const userId = (await regRes.json()).data.user.id;
 
-    // 2. Change role to manager
+    // 2. Change role to instructor
     const patchRes = await fetch(`${BASE_URL}/users/${userId}/role`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${adminToken}`,
       },
-      body: JSON.stringify({ role_name: 'manager' }),
+      body: JSON.stringify({ role_name: 'instructor' }),
     });
 
     assert.strictEqual(patchRes.status, 200);
     const patchBody = await patchRes.json();
     assert.strictEqual(patchBody.success, true);
     assert.strictEqual(patchBody.data.user_id, userId);
-    assert.strictEqual(patchBody.data.role, 'manager');
+    assert.strictEqual(patchBody.data.role, 'instructor');
     assert.strictEqual(patchBody.data.userId, undefined, 'Must not contain camelCase userId');
   });
 
