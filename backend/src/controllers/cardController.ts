@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { PaymentMethod } from '../models/index.js';
-import { AuthenticatedRequest } from '../middleware/authJwt.js';
-import { encryptAES256GCM } from '../services/cryptoService.js';
+import { Response } from "express";
+import { PaymentMethod } from "../models/index.js";
+import { AuthenticatedRequest } from "../middleware/authJwt.js";
+import { encryptAES256GCM } from "../services/cryptoService.js";
 
 export class CardController {
   // GetAllCards Godoc
@@ -18,8 +18,19 @@ export class CardController {
 
     const cards = await PaymentMethod.findAll({
       where: { user_id: userId },
-      attributes: ['id', 'card_holder', 'last4', 'exp_month', 'exp_year', 'is_default', 'created_at'],
-      order: [['is_default', 'DESC'], ['created_at', 'DESC']],
+      attributes: [
+        "id",
+        "card_holder",
+        "last4",
+        "exp_month",
+        "exp_year",
+        "is_default",
+        "created_at",
+      ],
+      order: [
+        ["is_default", "DESC"],
+        ["created_at", "DESC"],
+      ],
     });
 
     res.status(200).json({
@@ -39,9 +50,19 @@ export class CardController {
   // @Success      201      {object}  models.CardResponse
   // @Failure      400      {object}  models.ErrorResponse
   // @Router       /cards [post]
-  static async addCard(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async addCard(
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> {
     const userId = req.user?.userId;
-    const { cleanCardNumber, card_holder, exp_month, exp_year, cleanCvv, is_default } = req.body;
+    const {
+      cleanCardNumber,
+      card_holder,
+      exp_month,
+      exp_year,
+      cleanCvv,
+      is_default,
+    } = req.body;
 
     const last4 = cleanCardNumber.slice(-4);
 
@@ -54,7 +75,10 @@ export class CardController {
 
     // If marked default, unset existing default
     if (is_default) {
-      await PaymentMethod.update({ is_default: false }, { where: { user_id: userId } });
+      await PaymentMethod.update(
+        { is_default: false },
+        { where: { user_id: userId } },
+      );
     }
 
     const card = await PaymentMethod.create({
@@ -69,7 +93,8 @@ export class CardController {
 
     res.status(201).json({
       success: true,
-      message: 'Банковская карта успешно привязана (данные зашифрованы алгоритмом AES-256-GCM).',
+      message:
+        "Банковская карта успешно привязана (данные зашифрованы алгоритмом AES-256-GCM).",
       data: {
         id: card.id,
         card_holder: card.card_holder,
@@ -93,7 +118,10 @@ export class CardController {
   // @Success      200  {object}  models.SuccessResponse
   // @Failure      404  {object}  models.ErrorResponse
   // @Router       /cards/{id} [delete]
-  static async deleteCard(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async deleteCard(
+    req: AuthenticatedRequest,
+    res: Response,
+  ): Promise<void> {
     const { id } = req.params;
     const userId = req.user?.userId;
 
@@ -104,7 +132,7 @@ export class CardController {
     if (!card) {
       res.status(404).json({
         success: false,
-        error: { code: 'CARD_NOT_FOUND', message: 'Карта не найдена.' },
+        error: { code: "CARD_NOT_FOUND", message: "Карта не найдена." },
       });
       return;
     }
@@ -113,7 +141,7 @@ export class CardController {
 
     res.status(200).json({
       success: true,
-      message: 'Карта успешно удалена.',
+      message: "Карта успешно удалена.",
     });
   }
 }
