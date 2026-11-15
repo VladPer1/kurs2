@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { PaymentMethod } from "../models/index.js";
 import { AuthenticatedRequest } from "../middleware/authJwt.js";
-import { encryptAES256GCM } from "../services/cryptoService.js";
+import { encryptAES256GCM, decryptAES256GCM } from "../services/cryptoService.js";
 
 export class CardController {
   // GetAllCards Godoc
@@ -72,6 +72,30 @@ export class CardController {
       cvv: cleanCvv,
     });
     const encrypted_payload = encryptAES256GCM(sensitivePayload);
+
+    // Check if this card is already added by current user (comparing decrypted card number or hash)
+    const userCards = await PaymentMethod.findAll({
+      where: { user_id: userId },
+    });
+
+    for (const existingCard of userCards) {
+      try {
+        const decrypted = decryptAES256GCM(existingCard.encrypted_payload);
+        const parsed = JSON.parse(decrypted);
+        if (parsed.card_number === cleanCardNumber) {
+          res.status(409).json({
+            success: false,
+            error: {
+              code: 'CARD_ALREADY_EXISTS',
+              message: 'Эта банковская карта уже привязана к вашему аккаунту',
+            },
+          });
+          return;
+        }
+      } catch (e) {
+        // ignore decryption errors for legacy records if any
+      }
+    }
 
     // If marked default, unset existing default
     if (is_default) {

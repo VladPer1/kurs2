@@ -7,6 +7,7 @@ import { Course } from './Course.js';
 import { Enrollment } from './Enrollment.js';
 import { PaymentMethod } from './PaymentMethod.js';
 import { Payment } from './Payment.js';
+import { Review } from './Review.js';
 
 // Setup Associations
 
@@ -123,6 +124,28 @@ Payment.belongsTo(PaymentMethod, {
   as: 'payment_method',
 });
 
+// 11. Course & Reviews (1:N)
+Course.hasMany(Review, {
+  foreignKey: 'course_id',
+  as: 'reviews',
+  onDelete: 'CASCADE',
+});
+Review.belongsTo(Course, {
+  foreignKey: 'course_id',
+  as: 'course',
+});
+
+// 12. User & Reviews (1:N)
+User.hasMany(Review, {
+  foreignKey: 'user_id',
+  as: 'reviews',
+  onDelete: 'CASCADE',
+});
+Review.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user',
+});
+
 export {
   Role,
   Permission,
@@ -133,4 +156,6 @@ export {
   Enrollment,
   PaymentMethod,
   Payment,
+  Review,
 };
+

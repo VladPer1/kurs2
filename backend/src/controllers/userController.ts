@@ -258,13 +258,13 @@ export class UserController {
   // @Failure      409      {object}  models.ErrorResponse           "Пользователь с таким email уже существует"
   // @Router       /users [post]
   static async createStaffUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const isAdmin = req.user?.role === 'admin' || (req.user?.permissions && req.user.permissions.includes('users:create_staff'));
-    if (!isAdmin) {
+    const hasPermission = req.user?.permissions && req.user.permissions.includes('users:create_staff');
+    if (!hasPermission) {
       res.status(403).json({
         success: false,
         error: {
           code: 'FORBIDDEN_INSUFFICIENT_PERMISSIONS',
-          message: 'Доступ запрещен. Создание преподавателей и администраторов доступно исключительно администраторам системы.',
+          message: 'Доступ запрещен. Создание преподавателей и администраторов доступно исключительно пользователям с соответствующими правами.',
         },
       });
       return;
@@ -381,13 +381,13 @@ export class UserController {
   // @Failure      404  {object}  models.ErrorResponse       "Пользователь не найден"
   // @Router       /users/{id} [delete]
   static async deleteUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const isAdmin = req.user?.role === 'admin' || (req.user?.permissions && req.user.permissions.includes('users:delete'));
-    if (!isAdmin) {
+    const hasPermission = req.user?.permissions && req.user.permissions.includes('users:delete');
+    if (!hasPermission) {
       res.status(403).json({
         success: false,
         error: {
           code: 'FORBIDDEN_INSUFFICIENT_PERMISSIONS',
-          message: 'Доступ запрещен. Удаление пользователей доступно исключительно администраторам системы.',
+          message: 'Доступ запрещен. Удаление пользователей доступно исключительно пользователям с соответствующими правами.',
         },
       });
       return;

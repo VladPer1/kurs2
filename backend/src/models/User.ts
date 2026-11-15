@@ -5,6 +5,7 @@ export interface UserAttributes {
   id: string;
   role_id: string;
   email: string;
+  phone?: string;
   password_hash: string;
   full_name: string;
   failed_login_attempts: number;
@@ -15,12 +16,13 @@ export interface UserAttributes {
 }
 
 export interface UserCreationAttributes
-  extends Optional<UserAttributes, 'id' | 'failed_login_attempts' | 'lock_until' | 'refresh_token'> {}
+  extends Optional<UserAttributes, 'id' | 'phone' | 'failed_login_attempts' | 'lock_until' | 'refresh_token'> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   declare id: string;
   declare role_id: string;
   declare email: string;
+  declare phone: string;
   declare password_hash: string;
   declare full_name: string;
   declare failed_login_attempts: number;
@@ -57,6 +59,10 @@ User.init(
       validate: {
         isEmail: true,
       },
+    },
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     password_hash: {
       type: DataTypes.STRING,

@@ -27,55 +27,60 @@ export class EnrollmentController {
       return;
     }
 
-    const course = await Course.findByPk(course_id);
-    if (!course) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'COURSE_NOT_FOUND', message: 'Курс не найден.' },
-      });
-      return;
-    }
-
-    if (course.status !== 'published') {
-      res.status(400).json({
-        success: false,
-        error: { code: 'COURSE_NOT_AVAILABLE', message: 'Курс не доступен для записи (не опубликован).' },
-      });
-      return;
-    }
-
-    // Check existing active enrollment
-    const existing = await Enrollment.findOne({
-      where: {
-        user_id: userId,
-        course_id,
-        status: ['pending_payment', 'confirmed'],
-      },
-    });
-
-    if (existing) {
-      res.status(409).json({
-        success: false,
-        error: {
-          code: 'ALREADY_ENROLLED',
-          message: `Вы уже записаны на данный курс (статус: ${existing.status}).`,
-          enrollment_id: existing.id,
-        },
-      });
-      return;
-    }
-
-    if (course.available_seats <= 0) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'NO_SEATS_AVAILABLE', message: 'На данном курсе закончились свободные места.' },
-      });
-      return;
-    }
-
-    // Transactional seat decrement & enrollment creation
+    // Transactional seat decrement & enrollment creation with checks
     const t = await sequelize.transaction();
     try {
+      const course = await Course.findByPk(course_id, { transaction: t, lock: t.LOCK.UPDATE });
+      if (!course) {
+        await t.rollback();
+        res.status(404).json({
+          success: false,
+          error: { code: 'COURSE_NOT_FOUND', message: 'Курс не найден.' },
+        });
+        return;
+      }
+
+      if (course.status !== 'published') {
+        await t.rollback();
+        res.status(400).json({
+          success: false,
+          error: { code: 'COURSE_NOT_AVAILABLE', message: 'Курс не доступен для записи (не опубликован).' },
+        });
+        return;
+      }
+
+      if (course.available_seats <= 0) {
+        await t.rollback();
+        res.status(400).json({
+          success: false,
+          error: { code: 'NO_SEATS_AVAILABLE', message: 'На этом курсе закончились свободные места' },
+        });
+        return;
+      }
+
+      // Check existing active enrollment inside transaction
+      const existing = await Enrollment.findOne({
+        where: {
+          user_id: userId,
+          course_id,
+          status: ['pending_payment', 'confirmed'],
+        },
+        transaction: t,
+      });
+
+      if (existing) {
+        await t.rollback();
+        res.status(409).json({
+          success: false,
+          error: {
+            code: 'ALREADY_ENROLLED',
+            message: `Вы уже записаны на данный курс (статус: ${existing.status}).`,
+            enrollment_id: existing.id,
+          },
+        });
+        return;
+      }
+
       await course.decrement('available_seats', { by: 1, transaction: t });
 
       const enrollment = await Enrollment.create(

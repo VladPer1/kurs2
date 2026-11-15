@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/index.js';
 import { swaggerDocument } from './docs/swaggerSpec.js';
@@ -43,7 +44,10 @@ export function createExpressApp(): express.Application {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
 
-  // 4. Global metrics increment
+  // 4. HTTP Request Logger via Morgan
+  app.use(morgan('dev'));
+
+  // 5. Global metrics increment
   app.use((_req, _res, next) => {
     incrementRequestCounter();
     next();

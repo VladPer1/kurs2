@@ -4,11 +4,15 @@ export const ALLOWED_REGISTRATION_ROLES = ['student'] as const;
 export const ALLOWED_STAFF_ROLES = ['instructor', 'admin'] as const;
 
 export function validateRegister(req: Request, res: Response, next: NextFunction): void {
-  const { email, password, full_name, role } = req.body;
+  const { email, phone, password, full_name, role } = req.body;
   const errors: string[] = [];
 
   if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.push('Поле email должно быть корректным адресом электронной почты.');
+  }
+
+  if (!phone || typeof phone !== 'string' || phone.trim().length < 5) {
+    errors.push('Поле phone обязательно и должно содержать номер телефона.');
   }
 
   if (!password || typeof password !== 'string' || password.length < 8) {
@@ -50,6 +54,7 @@ export function validateRegister(req: Request, res: Response, next: NextFunction
 
   // Sanitize
   req.body.email = email.trim().toLowerCase();
+  req.body.phone = phone.trim();
   req.body.full_name = full_name.trim();
   req.body.role = 'student';
   next();
