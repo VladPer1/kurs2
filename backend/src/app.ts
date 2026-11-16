@@ -1,3 +1,13 @@
+import * as Sentry from '@sentry/node';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 1.0,
+  });
+}
+
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -10,6 +20,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiGlobalLimiter } from './middleware/rateLimiter.js';
 import { incrementRequestCounter } from './controllers/systemController.js';
 import { ENV } from './config/env.js';
+import { logger } from './config/logger.js';
 
 export function createExpressApp(): express.Application {
   const app = express();
@@ -44,8 +55,13 @@ export function createExpressApp(): express.Application {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
 
-  // 4. HTTP Request Logger via Morgan
-  app.use(morgan('dev'));
+  // 4. HTTP Request Logger via Morgan with Better Stack stream
+  const morganStream = {
+    write: (message: string) => {
+      logger.info(message.trim());
+    },
+  };
+  app.use(morgan('dev', { stream: morganStream }));
 
   // 5. Global metrics increment
   app.use((_req, _res, next) => {
@@ -67,6 +83,11 @@ export function createExpressApp(): express.Application {
 
   // 7. Mount Core API v1 routes
   app.use('/api/v1', apiRoutes);
+
+  // Sentry Express error handler
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+  }
 
   // 8. Global Error Handler (OWASP generic errors in production)
   app.use(errorHandler);

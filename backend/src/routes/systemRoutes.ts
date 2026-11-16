@@ -7,5 +7,7 @@ const router = Router();
 
 router.get('/health', SystemController.health);
 router.get('/metrics', authenticate, hasPermission('system:monitor'), SystemController.metrics);
+router.get('/sentry-test', SystemController.sentryTest);
+
 
 export default router;

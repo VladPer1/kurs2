@@ -8,6 +8,10 @@ export const incrementRequestCounter = () => {
 };
 
 export class SystemController {
+  static async sentryTest(_req: Request, _res: Response): Promise<void> {
+    throw new Error('Test Sentry Backend Error');
+  }
+
   // HealthCheck Godoc
   // @Summary      Проверка работоспособности (Health check)
   // @Description  Проверка подключения к базе данных и времени работы сервера

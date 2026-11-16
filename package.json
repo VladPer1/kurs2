@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@logtail/node": "^0.6.1",
+    "@sentry/node": "^11.12.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@vitejs/plugin-react": "^6.1.1",
