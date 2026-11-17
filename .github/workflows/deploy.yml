@@ -1,0 +1,105 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # 1. Линтинг и тестирование
+  test-and-lint:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies (root)
+        run: npm ci
+
+      - name: Install backend dependencies
+        if: hashFiles('backend/package.json') != ''
+        run: cd backend && npm install
+
+      - name: Install frontend dependencies
+        if: hashFiles('client/package.json') != ''
+        run: cd client && npm install
+
+      - name: Run ESLint
+        run: npm run lint --if-present
+
+      - name: Run Tests
+        run: npm test --if-present
+
+  # 2. Сборка Docker-образа (проверка контейнеризации)
+  docker-build:
+    name: Build Docker Image
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: hashFiles('Dockerfile') != '' || hashFiles('backend/Dockerfile') != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: coursestore-app:${{ github.sha }}
+
+  # 3. Деплой бэкенда (Railway) и фронтенда (Vercel)
+  deploy:
+    name: Deploy to Production
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Backend to Railway
+        if: env.RAILWAY_TOKEN != ''
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          npm install -g @railway/cli
+          railway up --detach
+
+      - name: Deploy Frontend to Vercel
+        if: env.VERCEL_TOKEN != ''
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
+      - name: Send Telegram Notification
+        if: always() && env.TELEGRAM_BOT_TOKEN != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          STATUS="${{ job.status }}"
+          MESSAGE="🚀 <b>CI/CD Деплой ($STATUS)</b>%0A📦 Репозиторий: <code>${{ github.repository }}</code>%0A🌿 Ветка: <code>${{ github.ref_name }}</code>%0A📝 Коммит: ${{ github.event.head_commit.message }}"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="${MESSAGE}" \
+            -d parse_mode="HTML"
