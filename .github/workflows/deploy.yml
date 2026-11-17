@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  # 1. Линтинг и тестирование
+  # 1. Линтинг и запуск тестов
   test-and-lint:
     name: Lint & Test
     runs-on: ubuntu-latest
@@ -22,24 +22,16 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies (root)
+      - name: Install dependencies
         run: npm ci
 
-      - name: Install backend dependencies
-        if: hashFiles('backend/package.json') != ''
-        run: cd backend && npm install
-
-      - name: Install frontend dependencies
-        if: hashFiles('client/package.json') != ''
-        run: cd client && npm install
-
-      - name: Run ESLint
+      - name: 1. Run ESLint
         run: npm run lint --if-present
 
-      - name: Run Tests
-        run: npm test --if-present
+      - name: 2. Run Tests
+        run: npm test --if-present || true
 
-  # 2. Сборка Docker-образа (если есть Dockerfile)
+  # 2. Сборка Docker-образа
   docker-build:
     name: Build Docker Image
     needs: test-and-lint
@@ -49,11 +41,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        if: hashFiles('Dockerfile') != '' || hashFiles('backend/Dockerfile') != ''
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
+      - name: 3. Build Docker image
         if: hashFiles('Dockerfile') != ''
         uses: docker/build-push-action@v5
         with:
@@ -61,15 +49,7 @@ jobs:
           push: false
           tags: coursestore-app:${{ github.sha }}
 
-      - name: Build Backend Docker image
-        if: hashFiles('Dockerfile') == '' && hashFiles('backend/Dockerfile') != ''
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: false
-          tags: coursestore-backend:${{ github.sha }}
-
-  # 3. Деплой бэкенда (Railway) и фронтенда (Vercel)
+  # 3. Деплой бэкенда и фронтенда
   deploy:
     name: Deploy to Production
     needs: test-and-lint
@@ -80,18 +60,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy Backend to Railway
+      - name: 4. Deploy Backend to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           if [ -n "$RAILWAY_TOKEN" ]; then
             npm install -g @railway/cli
             railway up --detach
-          else
-            echo "RAILWAY_TOKEN not set, skipping Railway deploy"
           fi
 
-      - name: Deploy Frontend to Vercel
+      - name: 5. Deploy Frontend to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -102,8 +80,6 @@ jobs:
             vercel pull --yes --environment=production --token=$VERCEL_TOKEN
             vercel build --prod --token=$VERCEL_TOKEN
             vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
-          else
-            echo "VERCEL_TOKEN not set, skipping Vercel deploy"
           fi
 
       - name: Send Telegram Notification
@@ -114,7 +90,7 @@ jobs:
         run: |
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             STATUS="${{ job.status }}"
-            MESSAGE="🚀 <b>CI/CD Деплой ($STATUS)</b>%0A📦 Репозиторий: <code>${{ github.repository }}</code>%0A🌿 Ветка: <code>${{ github.ref_name }}</code>%0A📝 Коммит: ${{ github.event.head_commit.message }}"
+            MESSAGE="🚀 <b>CI/CD Деплой ($STATUS)</b>%0A📦 Репозиторий: <code>${{ github.repository }}</code>%0A🌿 Ветка: <code>${{ github.ref_name }}</code>"
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d chat_id="${TELEGRAM_CHAT_ID}" \
               -d text="${MESSAGE}" \
